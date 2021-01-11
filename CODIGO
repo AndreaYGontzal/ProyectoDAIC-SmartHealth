@@ -1,0 +1,259 @@
+//EMBARAZO
+
+from grove.gpio import GPIO
+import serial
+import os
+import sys
+import time
+import math
+from grove.adc import ADC
+
+
+"""import grove.adc import ADC"""
+
+fumador=GPIO(16,GPIO.IN)
+embarazo=GPIO(18,GPIO.IN)
+comienzo= GPIO(24,GPIO.IN)
+
+
+
+
+led_fumador=GPIO(22,GPIO.OUT)
+
+file= open('/home/pi/archivo.txt','a')
+leido=0
+leido1=0
+
+
+while comienzo.read():
+    if (leido==0):
+    
+        if fumador.read():
+            led_fumador.write(1)
+            file.write("Fumador" +os.linesep)
+            leido=1
+          
+        else:
+            led_fumador.write(0)
+            leido=0
+        
+    
+        
+    if (leido1==0):  
+        
+        if embarazo.read():
+            file.write("Embarazada" +os.linesep)
+            leido1=1
+            
+        else:
+          
+            leido1=0
+
+
+
+led_fumador.write(0)
+
+
+
+ 
+
+file.close() 
+
+
+
+//SUDORACIÓN
+file= open('/home/pi/archivo.txt','a')
+class GroveGSRSensor:
+ 
+    def __init__(self, channel):
+        self.channel = channel
+        self.adc = ADC()
+ 
+    @property
+    def GSR(self):
+        value = self.adc.read(self.channel)
+        return value
+ 
+Grove = GroveGSRSensor
+
+ 
+def main():
+    if len(sys.argv) < 2:
+        print('Usage: {} adc_channel'.format(sys.argv[0]))
+        sys.exit(1)
+ 
+    sensor = GroveGSRSensor(int(sys.argv[1]))
+    cantidad=0
+    suma=0
+    media=0
+    print('Detecting...')
+    i=0
+    while i<=10:
+        numero=0
+        numero= int(format(sensor.GSR))
+        suma=suma+numero
+        cantidad=cantidad +1
+        media=(suma/cantidad)
+        media_str=str(media)
+        print(media)
+        print('GSR value: {0}'.format(sensor.GSR))
+        time.sleep(.3)
+        i+=1
+        
+        
+    if (i==11):
+        file.write("Sudoracion : ")
+        file.write(media_str + os.linesep)
+        file.close()
+        
+        
+if __name__ == '__main__':
+    main()
+    
+file.close()
+
+
+//AlTURA
+import sys
+import time
+import os
+import json
+from grove.gpio import GPIO
+
+
+usleep = lambda x: time.sleep(x / 1000000.0)
+
+_TIMEOUT1 = 1000
+_TIMEOUT2 = 10000
+file= open('/home/pi/archivo.txt','a')
+
+class GroveUltrasonicRanger(object):
+    def __init__(self, pin):
+        self.dio = GPIO(pin)
+
+    def _get_distance(self):
+        self.dio.dir(GPIO.OUT)
+        self.dio.write(0)
+        usleep(2)
+        self.dio.write(1)
+        usleep(10)
+        self.dio.write(0)
+
+        self.dio.dir(GPIO.IN)
+
+        t0 = time.time()
+        count = 0
+        while count < _TIMEOUT1:
+            if self.dio.read():
+                break
+            count += 1
+        if count >= _TIMEOUT1:
+            return None
+
+        t1 = time.time()
+        count = 0
+        while count < _TIMEOUT2:
+            if not self.dio.read():
+                break
+            count += 1
+        if count >= _TIMEOUT2:
+            return None
+
+        t2 = time.time()
+
+        dt = int((t1 - t0) * 1000000)
+        if dt > 530:
+            return None
+
+        distance = ((t2 - t1) * 1000000 / 29 / 2)    # cm
+
+        return distance
+
+    def get_distance(self):
+        while True:
+            dist = self._get_distance()
+            if dist:
+                return dist
+
+
+Grove = GroveUltrasonicRanger
+
+
+def main():
+    from grove.helper import SlotHelper
+    sh = SlotHelper(SlotHelper.GPIO)
+    pin = sh.argv2pin()
+
+    sonar = GroveUltrasonicRanger(pin)
+    cantidad=0
+    suma=0
+    media=0
+    print('Detecting distance...')
+    i=0
+    while i<=10:
+        distancia=0
+        distancia=float(format(sonar.get_distance()))
+        suma=suma+distancia
+        cantidad=cantidad +1
+        media=(suma/cantidad)
+        media_str=str(media)
+        print(media)
+        print('{} cm'.format(sonar.get_distance()))
+        time.sleep(1)
+        i+=1
+        media_m=media/100
+        media_m_str= str(media_m)
+#     with open('data.json','w') as fichero:
+#         json.dump(media_str,fichero,indent=1)
+    if (i==11):
+        file.write("Altura: ")
+        file.write(media_str )
+        file.write(" cm")
+        file.write("---->")
+        file.write(media_m_str)
+        file.write("metros")
+        file.close()
+        json.dump
+    
+if __name__ == '__main__':
+    main()
+    
+    
+//ENVIO POR EMAIL
+import smtplib,ssl  
+from time import sleep  
+from email.mime.multipart import MIMEMultipart  
+from email.mime.base import MIMEBase  
+from email.mime.text import MIMEText  
+from email.utils import formatdate  
+from email import encoders  
+  
+def envia_email():  
+    enviador = "a.fuentes.r@opendeusto.es"
+    asunto = "Smart Health"
+    receptor = "andreafuentesrosas2@gmail.com"
+    
+    msg = MIMEMultipart()   
+    msg['From'] = enviador
+    msg['Subject'] = asunto 
+    msg['To'] = receptor
+    
+    part = MIMEBase('application', "octet-stream")  
+    part.set_payload(open("/home/pi/grove.py/grove/archivo.txt", "rb").read())  
+    encoders.encode_base64(part)  
+    part.add_header('Content-Disposition', 'attachment; filename="Analisis Smart health Covid"')
+    msg.attach(part)
+
+    try:  
+       s = smtplib.SMTP('smtp.gmail.com', 587)
+       s.ehlo()  
+       s.starttls()   
+       s.login(user = enviador, password = 'xxxxxXXXXX')
+       s.sendmail(enviador, receptor, "Smart Health") # Envia texto. Consulta Spam.
+       s.sendmail(enviador, receptor, msg.as_string()) # Envia imagen.
+       s.quit()
+    
+    except smtplib.SMTPException as error:  
+          print ("Error")
+  
+envia_email()  
