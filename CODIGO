@@ -257,3 +257,5 @@ def envia_email():
           print ("Error")
   
 envia_email()  
+
+//SENSOR PULSACIÓN
